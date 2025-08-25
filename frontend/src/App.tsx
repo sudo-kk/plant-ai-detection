@@ -87,6 +87,7 @@ export default function App() {
                 PlantAI
               </h1>
               <p className="text-sm text-slate-600">AI-Powered Plant Disease Detection</p>
+              <p className="text-xs text-slate-500 mt-1">by Karthik V K</p>
             </div>
           </div>
         </div>
@@ -279,9 +280,12 @@ export default function App() {
       </main>
 
       <footer className="relative text-center py-8">
-        <div className="max-w-2xl mx-auto px-6">
+        <div className="max-w-2xl mx-auto px-6 space-y-3">
           <p className="text-sm text-slate-500 bg-white/50 backdrop-blur-sm rounded-full px-6 py-3 inline-block border border-white/20">
             🌱 Powered by Google Gemini AI • For educational purposes only
+          </p>
+          <p className="text-xs text-slate-400 bg-white/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block border border-white/10">
+            Created by <span className="font-medium text-slate-600">Karthik V K</span> • Built with React + Cloudflare + Google Gemini
           </p>
         </div>
       </footer>

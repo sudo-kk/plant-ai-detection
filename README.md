@@ -2,6 +2,8 @@
 
 A full-stack plant disease detection application with AI-powered analysis using Google Gemini.
 
+**Created by: Karthik**
+
 ## 🌐 Live Demo
 - Frontend: [Your Cloudflare Pages URL]
 - API: [Your Cloudflare Worker URL]

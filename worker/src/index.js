@@ -1,3 +1,9 @@
+/**
+ * PlantAI - Plant Disease Detection API
+ * Created by: Karthik
+ * Powered by Google Gemini AI
+ */
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
