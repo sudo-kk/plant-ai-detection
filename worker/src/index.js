@@ -1,6 +1,6 @@
 /**
  * PlantAI - Plant Disease Detection API
- * Created by: Karthik
+ * Created by: Karthik V K
  * Powered by Google Gemini AI
  */
 

@@ -3,7 +3,7 @@ export const translations = {
     // Header
     appTitle: "PlantAI",
     appSubtitle: "AI-Powered Plant Disease Detection",
-    createdBy: "by Karthik",
+    createdBy: "by Karthik V K",
     
     // Upload Section
     uploadTitle: "Upload Plant Image",
@@ -26,7 +26,7 @@ export const translations = {
     
     // Footer
     poweredBy: "Powered by Google Gemini AI • For educational purposes only",
-    credits: "Created by Karthik • Built with React + Cloudflare",
+    credits: "Created by Karthik V K • Built with React + Cloudflare",
     
     // Errors
     selectImageError: "Please select an image",
@@ -46,7 +46,7 @@ export const translations = {
     // Header
     appTitle: "PlantAI",
     appSubtitle: "AI-संचालित पौधे रोग पहचान",
-    createdBy: "कार्तिक द्वारा",
+    createdBy: "कार्तिक वी के द्वारा",
     
     // Upload Section
     uploadTitle: "पौधे की तस्वीर अपलोड करें",
@@ -69,7 +69,7 @@ export const translations = {
     
     // Footer
     poweredBy: "Google Gemini AI द्वारा संचालित • केवल शैक्षिक उद्देश्यों के लिए",
-    credits: "कार्तिक द्वारा निर्मित • React + Cloudflare के साथ बनाया गया",
+    credits: "कार्तिक वी के द्वारा निर्मित • React + Cloudflare के साथ बनाया गया",
     
     // Errors
     selectImageError: "कृपया एक तस्वीर चुनें",
@@ -89,7 +89,7 @@ export const translations = {
     // Header
     appTitle: "PlantAI",
     appSubtitle: "AI-இயங்கும் தாவர நோய் கண்டறிதல்",
-    createdBy: "கார்த்திக் மூலம்",
+    createdBy: "கார்த்திக் வி கே மூலம்",
     
     // Upload Section
     uploadTitle: "தாவர படத்தை பதிவேற்றவும்",
@@ -112,7 +112,7 @@ export const translations = {
     
     // Footer
     poweredBy: "Google Gemini AI ஆல் இயக்கப்படுகிறது • கல்வி நோக்கங்களுக்காக மட்டும்",
-    credits: "கார்த்திக் மூலம் உருவாக்கப்பட்டது • React + Cloudflare உடன் கட்டமைக்கப்பட்டது",
+    credits: "கார்த்திக் வி கே மூலம் உருவாக்கப்பட்டது • React + Cloudflare உடன் கட்டமைக்கப்பட்டது",
     
     // Errors
     selectImageError: "தயவுசெய்து ஒரு படத்தைத் தேர்ந்தெடுக்கவும்",
@@ -132,7 +132,7 @@ export const translations = {
     // Header
     appTitle: "PlantAI",
     appSubtitle: "AI-പ്രവർത്തിത സസ്യ രോഗ കണ്ടെത്തൽ",
-    createdBy: "കാർത്തിക് രചിച്ചത്",
+    createdBy: "കാർത്തിക് വി കെ രചിച്ചത്",
     
     // Upload Section
     uploadTitle: "സസ്യ ചിത്രം അപ്‌ലോഡ് ചെയ്യുക",
@@ -155,7 +155,7 @@ export const translations = {
     
     // Footer
     poweredBy: "Google Gemini AI പ്രവർത്തിപ്പിക്കുന്നു • വിദ്യാഭ്യാസ ആവശ്യങ്ങൾക്ക് മാത്രം",
-    credits: "കാർത്തിക് സൃഷ്ടിച്ചത് • React + Cloudflare ഉപയോഗിച്ച് നിർമ്മിച്ചത്",
+    credits: "കാർത്തിക് വി കെ സൃഷ്ടിച്ചത് • React + Cloudflare ഉപയോഗിച്ച് നിർമ്മിച്ചത്",
     
     // Errors
     selectImageError: "ദയവായി ഒരു ചിത്രം തിരഞ്ഞെടുക്കുക",
