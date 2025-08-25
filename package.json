@@ -1,0 +1,9 @@
+{
+  "name": "plant-ai-detection",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build && cd .. && cp -r frontend/dist .",
+    "build:win": "cd frontend && npm install && npm run build && cd .. && xcopy frontend\\dist dist /E /I /H /Y"
+  },
+  "description": "Plant AI Detection - Full Stack Application"
+}
