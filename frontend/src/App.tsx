@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { translations, type Language } from './translations'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
@@ -7,13 +8,21 @@ export default function App() {
   const [imgUrl, setImgUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [language, setLanguage] = useState<Language>('en')
   const [result, setResult] = useState<null | {
     disease: string
     confidence: number
     suggestions: string[]
     inference_ms: number
+    severity?: string
+    plant_type?: string
+    affected_parts?: string[]
+    causative_agent?: string
+    treatment_urgency?: string
   }>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const t = translations[language]
 
   useEffect(() => {
     return () => { if (imgUrl) URL.revokeObjectURL(imgUrl) }
@@ -33,13 +42,14 @@ export default function App() {
   }
 
   async function onPredict() {
-    if (!file) { setError('Please select an image'); return }
+    if (!file) { setError(t.selectImageError); return }
     setLoading(true)
     setError(null)
     setResult(null)
     try {
       const form = new FormData()
       form.append('image', file)
+      form.append('language', language) // Send language preference
       const res = await fetch(`${API_BASE}/predict`, {
         method: 'POST',
         body: form,
@@ -54,9 +64,14 @@ export default function App() {
         confidence: data.confidence,
         suggestions: data.suggestions || [],
         inference_ms: data.inference_ms,
+        severity: data.severity,
+        plant_type: data.plant_type,
+        affected_parts: data.affected_parts,
+        causative_agent: data.causative_agent,
+        treatment_urgency: data.treatment_urgency
       })
     } catch (e: any) {
-      setError(e.message || 'Prediction failed')
+      setError(e.message || t.predictionFailedError)
     } finally {
       setLoading(false)
     }
@@ -77,18 +92,32 @@ export default function App() {
       </div>
 
       <header className="relative max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white text-2xl">🌱</span>
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                PlantAI
+                {t.appTitle}
               </h1>
-              <p className="text-sm text-slate-600">AI-Powered Plant Disease Detection</p>
-              <p className="text-xs text-slate-500 mt-1">by Karthik V K</p>
+              <p className="text-sm text-slate-600">{t.appSubtitle}</p>
+              <p className="text-xs text-slate-400 mt-1">{t.createdBy}</p>
             </div>
+          </div>
+          
+          {/* Language Selector */}
+          <div className="bg-white/50 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2">
+            <label className="block text-xs text-slate-500 mb-1">{t.language}</label>
+            <select 
+              value={language} 
+              onChange={(e) => setLanguage(e.target.value as Language)}
+              className="bg-transparent text-sm font-medium text-slate-700 border-none outline-none cursor-pointer"
+            >
+              {Object.entries(t.languages).map(([code, name]) => (
+                <option key={code} value={code}>{name}</option>
+              ))}
+            </select>
           </div>
         </div>
       </header>
@@ -100,8 +129,8 @@ export default function App() {
             <div className="bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-8 transition-all duration-300 hover:shadow-2xl">
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Upload Plant Image</h2>
-                  <p className="text-slate-600">Drop an image or click to browse</p>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">{t.uploadTitle}</h2>
+                  <p className="text-slate-600">{t.uploadSubtitle}</p>
                 </div>
                 
                 <div 
@@ -135,9 +164,9 @@ export default function App() {
                         <span className="text-2xl">📸</span>
                       </div>
                       <p className="text-slate-600">
-                        Drop your plant image here or <span className="text-green-600 font-medium">click to browse</span>
+                        {t.uploadSubtitle}
                       </p>
-                      <p className="text-xs text-slate-500 mt-2">Supports JPEG, PNG up to 8MB</p>
+                      <p className="text-xs text-slate-500 mt-2">{t.supportedFormats}</p>
                     </div>
                   ) : (
                     <div className="relative">
@@ -168,12 +197,12 @@ export default function App() {
                     {loading ? (
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Analyzing...
+                        {t.analyzingButton}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <span>🔍</span>
-                        Analyze Plant
+                        {t.analyzeButton}
                       </div>
                     )}
                   </button>
@@ -181,7 +210,7 @@ export default function App() {
                     onClick={onClear} 
                     className="px-6 py-4 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200"
                   >
-                    Clear
+                    {t.clearButton}
                   </button>
                 </div>
 
@@ -202,8 +231,8 @@ export default function App() {
             <div className="bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-8">
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Analysis Results</h2>
-                  <p className="text-slate-600">AI-powered disease detection</p>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">{t.resultsTitle}</h2>
+                  <p className="text-slate-600">{t.resultsSubtitle}</p>
                 </div>
 
                 {!result ? (
@@ -211,7 +240,7 @@ export default function App() {
                     <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
                       <span className="text-3xl">🌿</span>
                     </div>
-                    <p className="text-slate-500 text-lg">Upload an image to see results</p>
+                    <p className="text-slate-500 text-lg">{t.uploadPrompt}</p>
                   </div>
                 ) : (
                   <div className="space-y-6 animate-fadeIn">
@@ -223,10 +252,45 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Enhanced Disease Info */}
+                    {(result?.plant_type || result?.severity || result?.causative_agent) && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {result?.plant_type && (
+                          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                            <span className="text-xs text-blue-600 font-medium">Plant Type</span>
+                            <p className="text-sm text-blue-800">{result.plant_type}</p>
+                          </div>
+                        )}
+                        {result?.severity && (
+                          <div className={`border rounded-lg p-3 ${
+                            result.severity === 'Critical' ? 'bg-red-50 border-red-100' :
+                            result.severity === 'High' ? 'bg-orange-50 border-orange-100' :
+                            result.severity === 'Moderate' ? 'bg-yellow-50 border-yellow-100' :
+                            'bg-green-50 border-green-100'
+                          }`}>
+                            <span className="text-xs font-medium">Severity</span>
+                            <p className="text-sm">{result.severity}</p>
+                          </div>
+                        )}
+                        {result?.causative_agent && (
+                          <div className="bg-purple-50 border border-purple-100 rounded-lg p-3">
+                            <span className="text-xs text-purple-600 font-medium">Cause</span>
+                            <p className="text-sm text-purple-800 capitalize">{result.causative_agent}</p>
+                          </div>
+                        )}
+                        {result?.treatment_urgency && (
+                          <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+                            <span className="text-xs text-indigo-600 font-medium">Urgency</span>
+                            <p className="text-sm text-indigo-800 capitalize">{result.treatment_urgency.replace('_', ' ')}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Confidence Bar */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">Confidence Level</span>
+                        <span className="text-sm font-medium text-slate-700">{t.confidenceLevel}</span>
                         <span className="text-lg font-bold text-green-600">{Math.round((result?.confidence || 0)*100)}%</span>
                       </div>
                       <div className="relative h-4 bg-slate-200 rounded-full overflow-hidden">
@@ -241,7 +305,7 @@ export default function App() {
                     {/* Analysis Time */}
                     <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
                       <span>⚡</span>
-                      <span>Analysis completed in {result?.inference_ms || 0}ms</span>
+                      <span>{t.analysisTime} {result?.inference_ms || 0}ms</span>
                     </div>
 
                     {/* Suggestions */}
@@ -249,7 +313,7 @@ export default function App() {
                       <div className="space-y-3">
                         <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                           <span>💡</span>
-                          Recommendations
+                          {t.recommendations}
                         </h3>
                         <div className="space-y-2">
                           {result.suggestions.map((suggestion, i) => (
@@ -268,7 +332,7 @@ export default function App() {
                         onClick={onClear}
                         className="w-full px-6 py-3 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 rounded-xl hover:from-slate-200 hover:to-slate-300 transition-all duration-200 font-medium"
                       >
-                        Analyze Another Image
+                        {t.analyzeAnotherButton}
                       </button>
                     </div>
                   </div>
@@ -282,10 +346,10 @@ export default function App() {
       <footer className="relative text-center py-8">
         <div className="max-w-2xl mx-auto px-6 space-y-3">
           <p className="text-sm text-slate-500 bg-white/50 backdrop-blur-sm rounded-full px-6 py-3 inline-block border border-white/20">
-            🌱 Powered by Google Gemini AI • For educational purposes only
+            🌱 {t.poweredBy}
           </p>
           <p className="text-xs text-slate-400 bg-white/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block border border-white/10">
-            Created by <span className="font-medium text-slate-600">Karthik V K</span> • Built with React + Cloudflare + Google Gemini
+            {t.credits}
           </p>
         </div>
       </footer>
