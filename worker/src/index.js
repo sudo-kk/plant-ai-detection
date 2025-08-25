@@ -19,7 +19,7 @@ app.get('/health', (c) => {
 app.post('/predict', async (c) => {
   try {
     const formData = await c.req.formData();
-    const file = formData.get('file');
+    const file = formData.get('file') || formData.get('image'); // Handle both field names
     
     if (!file || !(file instanceof File)) {
       return c.json({ error: 'No file provided' }, 400);
