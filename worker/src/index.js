@@ -5,7 +5,7 @@ const app = new Hono();
 
 // CORS middleware
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://*.pages.dev'],
+  origin: '*', // Allow all origins for now - can be restricted later
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type'],
 }));
