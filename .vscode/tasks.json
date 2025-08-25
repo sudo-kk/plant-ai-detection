@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: dev",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "cd \"${workspaceFolder}/backend\"; if (!(Test-Path .venv)) { python -m venv .venv }; .\\.venv\\Scripts\\Activate.ps1; pip install -r requirements.txt; uvicorn app:app --reload --port 8000"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: dev",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "cd \"${workspaceFolder}/frontend\"; if (!(Test-Path node_modules)) { npm install }; if (!(Test-Path .env)) { Copy-Item .env.example .env }; npm run dev"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
