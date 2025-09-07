@@ -5,10 +5,7 @@ A full-stack plant disease detection application with AI-powered analysis using 
 **Created by: Karthik**
 
 ## 🌐 Live Demo
-- Frontend: [Your Cloudflare Pages URL]
-- API: [Your Cloudflare Worker URL]
-
-
+Link : https://plant-ai-detection.pages.dev
 
 ## 📁 Project Structure
 ```
