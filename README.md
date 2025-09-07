@@ -1,6 +1,6 @@
 # Plant AI Disease Detection - Deployment Guide
 
-A full-stack plant disease detection application with AI-powered analysis using Google Gemini.
+A  plant disease detection application web with AI-powered analysis using Google Gemini.
 
 **Created by: Karthik**
 
