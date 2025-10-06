@@ -2,6 +2,7 @@ import io
 import os
 import time
 import base64
+import logging
 from typing import List, Optional
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Header
@@ -22,6 +23,9 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent")
 MAX_IMAGE_MB = float(os.getenv("MAX_IMAGE_MB", "8"))
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
 app.add_middleware(
@@ -84,9 +88,18 @@ Be precise about confidence (0.0-1.0) based on clarity of symptoms. If unclear, 
         }
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
+        # Log request, omitting sensitive/large data
+        log_payload = payload.copy()
+        log_payload["contents"][0]["parts"][1]["inline_data"]["data"] = "<image_bytes>"
+        logging.info(f"Calling Gemini API: {log_payload}")
+
         r = await client.post(url, params=params, json=payload)
         r.raise_for_status()
-        return r.json()
+
+        response_json = r.json()
+        logging.info(f"Gemini API response: {response_json}")
+
+        return response_json
 
 
 def simple_heuristic(image: Image.Image) -> tuple[str, float, List[str]]:
