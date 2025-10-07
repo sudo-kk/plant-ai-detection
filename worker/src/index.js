@@ -128,7 +128,7 @@ Be scientifically accurate and provide actionable, safe recommendations. If mult
       temperature: 0.1,
       topK: 1,
       topP: 0.8,
-      maxOutputTokens: 1000
+      maxOutputTokens: 8192
     }
   };
 
@@ -153,9 +153,16 @@ Be scientifically accurate and provide actionable, safe recommendations. If mult
   const text = data.candidates[0].content.parts[0].text;
   
   try {
-    // Parse JSON response
-    const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
+    // Find the start and end of the JSON object
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+
+    if (startIndex === -1 || endIndex === -1) {
+      throw new Error('No JSON object found in response');
+    }
+
+    const jsonString = text.substring(startIndex, endIndex + 1);
+    const parsed = JSON.parse(jsonString);
     
     return {
       disease: parsed.disease_name || 'Unknown',
