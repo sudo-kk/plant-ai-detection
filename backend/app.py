@@ -5,7 +5,7 @@ import base64
 import logging
 from typing import List, Optional
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Header
+from fastapi import FastAPI, File, UploadFile, HTTPException, Header, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
@@ -40,7 +40,14 @@ class PredictResponse(BaseModel):
     id: str
     disease: str
     confidence: float
+    description: str
+    treatment: str
     suggestions: List[str]
+    severity: str
+    plant_type: str
+    affected_parts: List[str]
+    causative_agent: str
+    treatment_urgency: str
     inference_ms: int
 
 class ErrorResponse(BaseModel):
@@ -50,27 +57,76 @@ class ErrorResponse(BaseModel):
 def health():
     return {"status": "ok", "version": APP_VERSION}
 
-async def call_gemini(api_key: str, image_bytes: bytes) -> dict:
+async def call_gemini(api_key: str, image_bytes: bytes, language: str = "en") -> dict:
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     url = GEMINI_API_URL.format(model=GEMINI_MODEL)
     params = {"key": api_key}
+
+    language_instructions = {
+        'en': 'Respond in English',
+        'hi': 'हिंदी में उत्तर दें',
+        'ta': 'தமிழில் பதிலளிக்கவும்',
+        'ml': 'മലയാളത്തിൽ മറുപടി നൽകുക'
+    }
     
+    # Determine the language for the final instruction text
+    final_lang_text = 'ENGLISH'
+    if language == 'hi':
+        final_lang_text = 'HINDI'
+    elif language == 'ta':
+        final_lang_text = 'TAMIL'
+    elif language == 'ml':
+        final_lang_text = 'MALAYALAM'
+
+    prompt_text = f"""You are an expert plant pathologist with advanced knowledge in agricultural sciences, botany, and plant disease diagnosis. Analyze this plant image with the precision of a professional laboratory assessment.
+
+ANALYSIS FRAMEWORK:
+1. VISUAL EXAMINATION: Examine leaf morphology, coloration patterns, lesion characteristics, growth abnormalities, and environmental stress indicators
+2. SYMPTOM IDENTIFICATION: Identify primary and secondary symptoms including chlorosis, necrosis, wilting, stunting, distortion, and pathogen signs
+3. DIFFERENTIAL DIAGNOSIS: Consider multiple potential causes including fungal, bacterial, viral, nutritional, environmental, and pest-related factors
+4. CONFIDENCE ASSESSMENT: Base confidence on symptom clarity, image quality, diagnostic specificity, and elimination of alternative causes
+
+DIAGNOSTIC CRITERIA:
+- Fungal diseases: Look for spores, mycelium, fruiting bodies, characteristic lesion patterns
+- Bacterial diseases: Check for water-soaked lesions, bacterial ooze, systemic symptoms
+- Viral diseases: Examine for mosaic patterns, ring spots, yellowing, stunting
+- Nutritional deficiencies: Assess chlorosis patterns, leaf positioning, uniform vs. localized symptoms
+- Environmental stress: Consider light conditions, water stress, temperature damage
+- Pest damage: Look for feeding patterns, egg masses, insect presence
+
+CRITICAL: {language_instructions.get(language, language_instructions['en'])}.
+
+ALL FIELDS INCLUDING DISEASE NAMES, DESCRIPTIONS, RECOMMENDATIONS, AND TECHNICAL TERMS MUST BE IN THE SPECIFIED LANGUAGE.
+
+Respond in this exact JSON format with all content in the specified language:
+{{
+  "disease_name": "specific disease name with scientific classification or 'Healthy Plant' in the target language",
+  "confidence": 0.85,
+  "analysis": "comprehensive explanation including symptoms observed, affected plant parts, disease progression stage, and reasoning for diagnosis in the target language",
+  "recommendations": ["immediate treatment steps in target language", "preventive measures in target language", "monitoring guidelines in target language", "environmental modifications in target language", "follow-up actions in target language"],
+  "severity": "Low/Moderate/High/Critical in target language",
+  "plant_type": "identified plant species or family if determinable in target language",
+  "affected_parts": ["leaves", "stems", "roots", "flowers", "fruits"] in target language,
+  "causative_agent": "fungal/bacterial/viral/nutritional/environmental/pest in target language",
+  "treatment_urgency": "immediate/within_week/routine_care/monitoring in target language"
+}}
+
+CONFIDENCE SCORING:
+- 0.9-1.0: Clear, unambiguous symptoms with high diagnostic certainty
+- 0.7-0.89: Strong evidence with minor uncertainty or image limitations
+- 0.5-0.69: Moderate confidence with some differential diagnosis needed
+- 0.3-0.49: Low confidence due to early symptoms or image quality issues
+- 0.1-0.29: Very uncertain, requires additional examination
+
+Be scientifically accurate and provide actionable, safe recommendations. If multiple conditions are possible, mention the most likely primary diagnosis. Remember: ALL TEXT MUST BE IN {final_lang_text}.
+"""
+
     # This is the actual payload that will be sent
     payload = {
         "contents": [
             {
                 "parts": [
-                    {
-                        "text": """Analyze this plant image for diseases. Respond in this exact JSON format:
-{
-  "disease_name": "specific disease name or 'Healthy'",
-  "confidence": 0.85,
-  "analysis": "detailed explanation of symptoms observed",
-  "recommendations": ["specific actionable advice", "treatment steps"]
-}
-
-Be precise about confidence (0.0-1.0) based on clarity of symptoms. If unclear, use lower confidence."""
-                    },
+                    {"text": prompt_text},
                     {
                         "inline_data": {
                             "mime_type": "image/jpeg",
@@ -84,7 +140,7 @@ Be precise about confidence (0.0-1.0) based on clarity of symptoms. If unclear, 
             "temperature": 0.1,
             "topK": 1,
             "topP": 0.8,
-            "maxOutputTokens": 2000
+            "maxOutputTokens": 8192
         }
     }
     
@@ -191,6 +247,7 @@ def simple_heuristic(image: Image.Image) -> tuple[str, float, List[str]]:
 @app.post("/predict", response_model=PredictResponse, responses={400: {"model": ErrorResponse}})
 async def predict(
     image: UploadFile = File(...),
+    language: str = Form("en"),
     x_gemini_api_key: Optional[str] = Header(default=None, convert_underscores=False)
 ):
     # Validate image
@@ -202,24 +259,20 @@ async def predict(
     if size_mb > MAX_IMAGE_MB:
         raise HTTPException(status_code=413, detail=f"Image too large. Max {MAX_IMAGE_MB} MB")
 
-    # Load PIL image
+    # Load PIL image for heuristic fallback
     try:
         pil = Image.open(io.BytesIO(content))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     t0 = time.time()
-    disease = "Unknown"
-    conf = 0.0
-    tips: List[str] = []
 
     # Prefer header key; fall back to env key
     api_key = x_gemini_api_key or os.getenv(GEMINI_API_KEY_ENV)
 
     if api_key:
         try:
-            data = await call_gemini(api_key, content)
-            # Parse Gemini response for structured JSON output
+            data = await call_gemini(api_key, content, language)
             text = ""
             if isinstance(data, dict):
                 candidates = data.get("candidates") or []
@@ -231,59 +284,59 @@ async def predict(
             
             if text:
                 try:
-                    # Try to extract JSON from response
-                    import json
-                    import re
+                    # Find the start and end of the JSON object
+                    start_index = text.find('{')
+                    end_index = text.rfind('}')
                     
-                    # Look for JSON in the response
-                    json_match = re.search(r'\{[^{}]*"disease_name"[^{}]*\}', text, re.DOTALL)
-                    if json_match:
-                        gemini_result = json.loads(json_match.group())
-                        disease = gemini_result.get("disease_name", "Unknown Disease")[:80]
-                        conf = float(gemini_result.get("confidence", 0.7))
-                        conf = max(0.1, min(0.95, conf))  # Clamp between 0.1-0.95
+                    if start_index != -1 and end_index != -1:
+                        import json
+                        json_string = text[start_index:end_index+1]
+                        parsed = json.loads(json_string)
                         
-                        analysis = gemini_result.get("analysis", "")
-                        recommendations = gemini_result.get("recommendations", [])
-                        
-                        tips = []
-                        if analysis:
-                            tips.append(f"Analysis: {analysis[:200]}")
-                        if recommendations:
-                            tips.extend(recommendations[:3])  # Limit to 3 recommendations
-                        
-                        if not tips:
-                            tips = ["AI analysis completed", "Consult plant expert for severe cases"]
-                            
-                    else:
-                        # Fallback: parse free-form text
-                        lines = text.strip().split('\n')
-                        disease = lines[0][:80] if lines else "Disease Detected"
-                        conf = 0.7  # Default for unstructured response
-                        tips = [line.strip() for line in lines[1:4] if line.strip()] or ["AI analysis provided"]
-                        
-                except (json.JSONDecodeError, KeyError, ValueError):
-                    # If JSON parsing fails, use basic text parsing
-                    lines = text.strip().split('\n')
-                    disease = lines[0][:80] if lines else "Disease Analysis"
-                    conf = 0.6  # Lower confidence for unparsed response
-                    tips = [line.strip() for line in lines[1:3] if line.strip()] or ["Review AI response"]
-            else:
-                disease, conf, tips = simple_heuristic(pil)
-        except httpx.HTTPStatusError as e:
-            # If auth or other API error, fall back
-            disease, conf, tips = simple_heuristic(pil)
-        except Exception:
-            disease, conf, tips = simple_heuristic(pil)
-    else:
-        disease, conf, tips = simple_heuristic(pil)
+                        recommendations = parsed.get("recommendations", [])
+                        treatment = ". ".join(recommendations) if isinstance(recommendations, list) else (recommendations or "No recommendations available")
+                        suggestions = recommendations if isinstance(recommendations, list) else [recommendations or "No recommendations available"]
 
+                        t_ms = int((time.time()-t0)*1000)
+                        return PredictResponse(
+                            id=str(int(time.time()*1000)),
+                            disease=parsed.get("disease_name", "Unknown"),
+                            confidence=max(0.0, min(1.0, float(parsed.get("confidence", 0.0)))),
+                            description=parsed.get("analysis", "No analysis available"),
+                            treatment=treatment,
+                            suggestions=suggestions,
+                            severity=parsed.get("severity", "Unknown"),
+                            plant_type=parsed.get("plant_type", "Unknown plant"),
+                            affected_parts=parsed.get("affected_parts", []),
+                            causative_agent=parsed.get("causative_agent", "Unknown"),
+                            treatment_urgency=parsed.get("treatment_urgency", "monitoring"),
+                            inference_ms=t_ms
+                        )
+                except (json.JSONDecodeError, KeyError, ValueError) as e:
+                    logging.warning(f"JSON parsing failed, falling back to heuristic. Error: {e}")
+
+        except httpx.HTTPStatusError as e:
+            logging.error(f"Gemini API HTTP error, falling back to heuristic. Error: {e}")
+        except Exception as e:
+            logging.error(f"An unexpected error occurred, falling back to heuristic. Error: {e}")
+
+    # Fallback to heuristic if API key is missing, API call fails, or parsing fails
+    disease, conf, tips = simple_heuristic(pil)
     t_ms = int((time.time()-t0)*1000)
+
+    # The heuristic response needs to be adapted to the new PredictResponse model
     return PredictResponse(
         id=str(int(time.time()*1000)),
         disease=disease,
         confidence=round(conf,3),
+        description=f"Heuristic analysis suggests possible {disease.lower()}. For a full analysis, please provide an API key.",
+        treatment="Consult with a plant specialist for accurate diagnosis and treatment recommendations.",
         suggestions=tips,
+        severity="Moderate",
+        plant_type="Unknown plant",
+        affected_parts=["leaves"],
+        causative_agent="Unknown",
+        treatment_urgency="monitoring",
         inference_ms=t_ms
     )
 
