@@ -84,7 +84,7 @@ Be precise about confidence (0.0-1.0) based on clarity of symptoms. If unclear, 
             "temperature": 0.1,
             "topK": 1,
             "topP": 0.8,
-            "maxOutputTokens": 2000
+            "maxOutputTokens": 8192
         }
     }
     
@@ -231,14 +231,14 @@ async def predict(
             
             if text:
                 try:
-                    # Try to extract JSON from response
-                    import json
-                    import re
+                    # Find the start and end of the JSON object
+                    start_index = text.find('{')
+                    end_index = text.rfind('}')
                     
-                    # Look for JSON in the response
-                    json_match = re.search(r'\{[^{}]*"disease_name"[^{}]*\}', text, re.DOTALL)
-                    if json_match:
-                        gemini_result = json.loads(json_match.group())
+                    if start_index != -1 and end_index != -1:
+                        import json
+                        json_string = text[start_index:end_index+1]
+                        gemini_result = json.loads(json_string)
                         disease = gemini_result.get("disease_name", "Unknown Disease")[:80]
                         conf = float(gemini_result.get("confidence", 0.7))
                         conf = max(0.1, min(0.95, conf))  # Clamp between 0.1-0.95
@@ -254,14 +254,13 @@ async def predict(
                         
                         if not tips:
                             tips = ["AI analysis completed", "Consult plant expert for severe cases"]
-                            
                     else:
                         # Fallback: parse free-form text
                         lines = text.strip().split('\n')
                         disease = lines[0][:80] if lines else "Disease Detected"
                         conf = 0.7  # Default for unstructured response
                         tips = [line.strip() for line in lines[1:4] if line.strip()] or ["AI analysis provided"]
-                        
+
                 except (json.JSONDecodeError, KeyError, ValueError):
                     # If JSON parsing fails, use basic text parsing
                     lines = text.strip().split('\n')
