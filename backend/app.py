@@ -19,7 +19,7 @@ APP_VERSION = "0.1.0"
 # Load .env if present
 load_dotenv()
 GEMINI_API_KEY_ENV = "GEMINI_API_KEY"
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent")
 MAX_IMAGE_MB = float(os.getenv("MAX_IMAGE_MB", "8"))
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
@@ -51,11 +51,11 @@ def health():
     return {"status": "ok", "version": APP_VERSION}
 
 async def call_gemini(api_key: str, image_bytes: bytes) -> dict:
-    # Encode image to base64 for Gemini content API
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     url = GEMINI_API_URL.format(model=GEMINI_MODEL)
-    # Google Generative Language API expects API key via query param `key`
     params = {"key": api_key}
+    
+    # This is the actual payload that will be sent
     payload = {
         "contents": [
             {
@@ -84,21 +84,35 @@ Be precise about confidence (0.0-1.0) based on clarity of symptoms. If unclear, 
             "temperature": 0.1,
             "topK": 1,
             "topP": 0.8,
-            "maxOutputTokens": 1000
+            "maxOutputTokens": 2000
         }
     }
+    
+    # Create the log payload separately for logging purposes
+    log_payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": "..." },
+                    {"inline_data": {"mime_type": "image/jpeg", "data": "<image_bytes>"}}
+                ]
+            }
+        ],
+        "generationConfig": payload["generationConfig"]
+    }
+    logging.info(f"Calling Gemini API: {log_payload}")
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # Log request, omitting sensitive/large data
-        log_payload = payload.copy()
-        log_payload["contents"][0]["parts"][1]["inline_data"]["data"] = "<image_bytes>"
-        logging.info(f"Calling Gemini API: {log_payload}")
-
-        r = await client.post(url, params=params, json=payload)
-        r.raise_for_status()
-
+        try:
+            # Use the original payload with the real base64 data
+            r = await client.post(url, params=params, json=payload) 
+            r.raise_for_status() 
+        except httpx.HTTPStatusError as e:
+            logging.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+            raise e
+        
         response_json = r.json()
         logging.info(f"Gemini API response: {response_json}")
-
         return response_json
 
 
